@@ -11,7 +11,7 @@
   #include <PN532_SPI.h>
   #include "PN532.h"
 
-  PN532SPI pn532spi(SPI, 10);
+  PN532_SPI pn532spi(SPI, 10);
   PN532 nfc(pn532spi);
 #elif 0
   #include <PN532_HSU.h>
