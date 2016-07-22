@@ -19,7 +19,7 @@ It works with
 ### Getting Started
 1. Download [zip file](http://goo.gl/F6beRM) and 
 extract the 4 folders(PN532, PN532_SPI, PN532_I2C and PN532_HSU) into Arduino's libraries.
-2. Downlaod [Don's NDEF library](http://goo.gl/ewxeAe) and extract it intro Arduino's libraries.
+2. Download [Don's NDEF library](http://goo.gl/ewxeAe) and extract it intro Arduino's libraries.
 3. Follow the examples of the two libraries.
 
 
