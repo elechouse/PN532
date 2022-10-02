@@ -139,7 +139,7 @@ int16_t PN532_SPI::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
     return result;
 }
 
-boolean PN532_SPI::isReady()
+bool PN532_SPI::isReady()
 {
     digitalWrite(_ss, LOW);
 

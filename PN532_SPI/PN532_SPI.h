@@ -20,7 +20,7 @@ private:
     uint8_t   _ss;
     uint8_t command;
     
-    boolean isReady();
+    bool isReady();
     void writeFrame(const uint8_t *header, uint8_t hlen, const uint8_t *body = 0, uint8_t blen = 0);
     int8_t readAckFrame();
     
