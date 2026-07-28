@@ -1,0 +1,953 @@
+<!doctype html>
+<!-- Source: https://github.com/elechouse/PN532/tree/PN532_HSU/web/pn532-tester -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ELECHOUSE PN532 Web Serial Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #667085;
+      --line: #d9e1ee;
+      --brand: #1267ff;
+      --brand-dark: #0a4cc2;
+      --ok: #0f9f6e;
+      --warn: #c27803;
+      --bad: #d92d20;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #eaf2ff 0, transparent 32rem), var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1080px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 42px 0 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 18px 42px rgba(23, 32, 51, 0.08);
+      padding: 22px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .support {
+      margin-bottom: 18px;
+      border-left: 5px solid var(--warn);
+    }
+
+    .support.ok { border-left-color: var(--ok); }
+    .support.bad { border-left-color: var(--bad); }
+
+    .support-title {
+      margin: 0 0 6px;
+      font-weight: 750;
+    }
+
+    .support-message {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0 8px;
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 15px;
+      background: var(--brand);
+      color: white;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 140ms ease, transform 140ms ease, opacity 140ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--brand-dark);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    button.secondary {
+      background: #edf3ff;
+      color: #16478e;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #dceaff;
+    }
+
+    button.danger {
+      background: #fee4e2;
+      color: #b42318;
+    }
+
+    button.danger:hover:not(:disabled) {
+      background: #fecdca;
+    }
+
+    label.field {
+      display: inline-grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    select, input {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      color: var(--text);
+      padding: 8px 10px;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .status-row:last-child { border-bottom: 0; }
+
+    .status-label {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .status-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-family: var(--mono);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #16478e;
+      font-family: var(--sans);
+      font-weight: 750;
+      font-size: 13px;
+    }
+
+    .pill.ok { background: #dcfae6; color: #067647; }
+    .pill.warn { background: #fef0c7; color: #93370d; }
+    .pill.bad { background: #fee4e2; color: #b42318; }
+
+    .wiring {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    .wiring strong { color: var(--text); }
+
+    .supported-products {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 18px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .supported-products li {
+      padding: 10px 12px;
+      border: 1px solid #eef2f7;
+      border-radius: 14px;
+      background: #fbfcff;
+    }
+
+    a {
+      color: var(--brand);
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .connection-note {
+      margin: 14px 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .log {
+      height: 360px;
+      overflow: auto;
+      margin: 12px 0 0;
+      padding: 14px;
+      border-radius: 16px;
+      background: #101828;
+      color: #d0d5dd;
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .log .ok { color: #75e0a7; }
+    .log .warn { color: #fec84b; }
+    .log .bad { color: #f97066; }
+    .log .muted { color: #98a2b3; }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    code {
+      font-family: var(--mono);
+      background: #eef2f7;
+      border-radius: 6px;
+      padding: 2px 5px;
+    }
+
+    @media (max-width: 860px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .badge { width: fit-content; }
+      .status-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div>
+        <h1>PN532 Web Serial Tester</h1>
+        <p class="lead">
+          Connect an ELECHOUSE PN532 module by USB or USB-to-TTL, then use Chrome or Edge to detect firmware and poll ISO14443A cards directly from the browser.
+        </p>
+      </div>
+      <div class="badge" id="browserBadge">Checking browser...</div>
+    </section>
+
+    <section class="card support" id="supportCard" role="status" aria-live="polite">
+      <p class="support-title" id="supportTitle">Checking Web Serial support...</p>
+      <p class="support-message" id="supportMessage">This page must be opened from HTTPS or localhost.</p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>1. Connect PN532</h2>
+        <p class="small">
+          Default PN532 HSU/UART baud rate is usually <code>115200</code>. If your module uses a custom firmware or bridge, try another baud rate.
+        </p>
+
+        <div class="controls">
+          <label class="field">
+            Baud rate
+            <select id="baudRate">
+              <option value="115200" selected>115200</option>
+              <option value="57600">57600</option>
+              <option value="38400">38400</option>
+              <option value="19200">19200</option>
+              <option value="9600">9600</option>
+            </select>
+          </label>
+          <button id="connectBtn">Connect serial port</button>
+          <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        </div>
+
+        <div class="status-list">
+          <div class="status-row">
+            <div class="status-label">Serial status</div>
+            <div class="status-value"><span class="pill warn" id="serialStatus">Not connected</span></div>
+          </div>
+          <div class="status-row">
+            <div class="status-label">PN532 firmware</div>
+            <div class="status-value" id="firmwareStatus">Not checked</div>
+          </div>
+          <div class="status-row">
+            <div class="status-label">Last card UID</div>
+            <div class="status-value" id="uidStatus">No card detected</div>
+          </div>
+          <div class="status-row">
+            <div class="status-label">Polling</div>
+            <div class="status-value"><span class="pill warn" id="pollStatus">Stopped</span></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="firmwareBtn" class="secondary" disabled>Get firmware version</button>
+          <button id="initBtn" class="secondary" disabled>Initialize PN532</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2. Supported products & wiring</h2>
+        <p class="small">This tester can be used with these ELECHOUSE PN532 products:</p>
+        <ul class="supported-products">
+          <li><a href="https://www.elechouse.com/product/pn532-nfc-rfid-module-v4/" target="_blank" rel="noopener">PN532 NFC RFID Module V4</a></li>
+          <li><a href="https://www.elechouse.com/product/pn532-mini/" target="_blank" rel="noopener">PN5321 MINI / PN532 Mini</a></li>
+          <li><a href="https://www.elechouse.com/product/pn532-nfc-usb-module/" target="_blank" rel="noopener">PN532 NFC USB Module</a></li>
+          <li><a href="https://www.elechouse.com/product/pn532-nfc-evolution-v1/" target="_blank" rel="noopener">PN532 NFC Evolution V1</a></li>
+        </ul>
+        <p class="connection-note"><strong>TTL note:</strong> ELECHOUSE PN532 UART/HSU pins are compatible with both 3.3V and 5V TTL USB-to-TTL adapters.</p>
+        <ul class="wiring">
+          <li><strong>PN532 NFC RFID Module V4:</strong> switch the module to <strong>UART / HSU</strong> mode, then connect USB-TTL <strong>TX → PN532 RX</strong>, USB-TTL <strong>RX → PN532 TX</strong>, <strong>GND → GND</strong>, and power the board from 3.3V or 5V.</li>
+          <li><strong>PN5321 MINI / PN532 Mini:</strong> set the solder pads/jumpers to <strong>UART / HSU</strong> mode, connect USB-TTL <strong>TX → RX</strong>, <strong>RX → TX</strong>, share <strong>GND</strong>, and power the board from the adapter or another stable 3.3V/5V supply.</li>
+          <li><strong>PN532 NFC USB Module:</strong> connect the module directly to the computer with USB-C and select its virtual serial/COM port in the browser. No external USB-TTL adapter is required.</li>
+          <li><strong>PN532 NFC Evolution V1:</strong> switch the main board to <strong>UART / HSU</strong> mode, connect USB-TTL <strong>TX → HSU RX</strong>, <strong>RX → HSU TX</strong>, share <strong>GND</strong>, power the board from 3.3V or 5V, and make sure the external antenna board is connected before testing.</li>
+          <li>Open this page from <strong>HTTPS</strong> or <strong>localhost</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>3. Poll ISO14443A card</h2>
+        <p class="small">Place a card near the antenna, then start polling. The demo sends PN532 <code>InListPassiveTarget</code> commands and displays the UID.</p>
+        <div class="controls">
+          <label class="field">
+            Poll interval (ms)
+            <input id="pollInterval" type="number" min="250" max="5000" step="50" value="800" />
+          </label>
+          <button id="startPollBtn" disabled>Start polling</button>
+          <button id="stopPollBtn" class="danger" disabled>Stop polling</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Debug log</h2>
+        <button id="clearLogBtn" class="secondary">Clear log</button>
+        <div class="log" id="log" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ACK_FRAME = [0x00, 0x00, 0xff, 0x00, 0xff, 0x00];
+    // Keep the wake-up bytes and the first command in one serial write. The
+    // extra zero preamble follows the proven PN532 Web Serial/HSU sequence and
+    // survives USB-UART bridges that split or buffer small writes.
+    const WAKEUP_PREAMBLE = [0x55, 0x55, ...Array(12).fill(0x00)];
+    const HOST_TO_PN532 = 0xd4;
+    const PN532_TO_HOST = 0xd5;
+
+    const COMMANDS = {
+      GET_FIRMWARE_VERSION: 0x02,
+      SAM_CONFIGURATION: 0x14,
+      RF_CONFIGURATION: 0x32,
+      IN_LIST_PASSIVE_TARGET: 0x4a,
+    };
+
+    const els = {
+      browserBadge: document.getElementById('browserBadge'),
+      supportCard: document.getElementById('supportCard'),
+      supportTitle: document.getElementById('supportTitle'),
+      supportMessage: document.getElementById('supportMessage'),
+      baudRate: document.getElementById('baudRate'),
+      connectBtn: document.getElementById('connectBtn'),
+      disconnectBtn: document.getElementById('disconnectBtn'),
+      serialStatus: document.getElementById('serialStatus'),
+      firmwareStatus: document.getElementById('firmwareStatus'),
+      uidStatus: document.getElementById('uidStatus'),
+      pollStatus: document.getElementById('pollStatus'),
+      firmwareBtn: document.getElementById('firmwareBtn'),
+      initBtn: document.getElementById('initBtn'),
+      pollInterval: document.getElementById('pollInterval'),
+      startPollBtn: document.getElementById('startPollBtn'),
+      stopPollBtn: document.getElementById('stopPollBtn'),
+      clearLogBtn: document.getElementById('clearLogBtn'),
+      log: document.getElementById('log'),
+    };
+
+    let port = null;
+    let serialBuffer = null;
+    let pn532 = null;
+    let isBusy = false;
+    let polling = false;
+    let pollTimer = null;
+    let disconnectPromise = null;
+
+    function detectBrowser() {
+      const ua = navigator.userAgent || '';
+      const brands = navigator.userAgentData?.brands?.map((brand) => brand.brand).join(' ') || '';
+      const text = `${ua} ${brands}`;
+      const isEdge = /Edg\//.test(ua) || /Microsoft Edge/i.test(brands);
+      const isChrome = /Chrome\//.test(ua) || /Chromium|Google Chrome/i.test(brands);
+      const isChromium = isChrome || isEdge || /Chromium/i.test(text);
+      const isFirefox = /Firefox\//.test(ua);
+      const isSafari = /Safari\//.test(ua) && !isChrome && !isEdge;
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+      const browserName = isEdge ? 'Microsoft Edge' : isChrome ? 'Google Chrome / Chromium' : isFirefox ? 'Firefox' : isSafari ? 'Safari' : 'Unknown browser';
+      return {
+        browserName,
+        isChromium,
+        isMobile,
+        hasSerial: 'serial' in navigator,
+        isSecure: window.isSecureContext,
+      };
+    }
+
+    function updateSupportUi() {
+      const info = detectBrowser();
+      els.browserBadge.textContent = `${info.browserName}${info.isMobile ? ' mobile' : ' desktop'}`;
+      els.supportCard.classList.remove('ok', 'bad');
+
+      if (!info.isSecure) {
+        els.supportCard.classList.add('bad');
+        els.supportTitle.textContent = 'This page is not running in a secure context.';
+        els.supportMessage.textContent = 'Please open it with HTTPS or localhost. Web Serial is blocked on normal HTTP pages.';
+        els.connectBtn.disabled = true;
+        return;
+      }
+
+      if (!info.hasSerial) {
+        els.supportCard.classList.add('bad');
+        els.supportTitle.textContent = 'Your browser does not support Web Serial.';
+        els.supportMessage.textContent = 'Please switch to desktop Google Chrome or Microsoft Edge, then reopen this page.';
+        els.connectBtn.disabled = true;
+        return;
+      }
+
+      if (!info.isChromium || info.isMobile) {
+        els.supportTitle.textContent = 'Web Serial API is available, but this browser is not the recommended desktop Chrome/Edge path.';
+        els.supportMessage.textContent = 'You can try connecting. For customer support, recommend desktop Chrome or Edge on Windows/macOS/Linux.';
+        els.connectBtn.disabled = false;
+        return;
+      }
+
+      els.supportCard.classList.add('ok');
+      els.supportTitle.textContent = 'Browser supported.';
+      els.supportMessage.textContent = 'Click "Connect serial port", select the USB-to-TTL COM port, then run firmware detection.';
+      els.connectBtn.disabled = false;
+    }
+
+    function setPill(el, text, mode) {
+      el.textContent = text;
+      el.className = `pill ${mode || ''}`.trim();
+    }
+
+    function log(message, mode = '') {
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = mode;
+      line.textContent = `[${time}] ${message}`;
+      els.log.appendChild(line);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+
+    function toHex(bytes) {
+      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    }
+
+    function removeWaiter(waiters, waiter) {
+      const index = waiters.indexOf(waiter);
+      if (index >= 0) waiters.splice(index, 1);
+    }
+
+    class SerialBuffer {
+      constructor(serialPort) {
+        this.port = serialPort;
+        this.buffer = [];
+        this.waiters = [];
+        this.reader = null;
+        this.readPromise = null;
+        this.closed = false;
+        this.bytesSinceDrain = 0;
+      }
+
+      start() {
+        if (!this.readPromise) this.readPromise = this.readLoop();
+        return this.readPromise;
+      }
+
+      async readLoop() {
+        this.reader = this.port.readable.getReader();
+        try {
+          while (!this.closed) {
+            const { value, done } = await this.reader.read();
+            if (done) break;
+            if (value && value.length) {
+              this.buffer.push(...value);
+              this.bytesSinceDrain += value.length;
+              this.notify();
+            }
+          }
+        } catch (error) {
+          if (!this.closed) log(`Serial read error: ${error.message}`, 'bad');
+        } finally {
+          try { this.reader?.releaseLock(); } catch (_) {}
+          this.reader = null;
+        }
+      }
+
+      async stop() {
+        if (!this.closed) {
+          this.closed = true;
+          this.waiters.splice(0).forEach((waiter) => waiter.reject(new Error('Serial port closed')));
+          try { await this.reader?.cancel(); } catch (_) {}
+        }
+        try { await this.readPromise; } catch (_) {}
+      }
+
+      drain() {
+        const count = this.buffer.length;
+        this.buffer.length = 0;
+        this.bytesSinceDrain = 0;
+        if (count) log(`Drained ${count} stale byte(s).`, 'muted');
+      }
+
+      notify() {
+        [...this.waiters].forEach((waiter) => waiter.check());
+      }
+
+      waitFor(extractor, timeoutMs, label) {
+        if (this.closed) return Promise.reject(new Error('Serial port closed'));
+        return new Promise((resolve, reject) => {
+          const waiter = {
+            check: () => {
+              try {
+                const result = extractor(this.buffer);
+                if (result === null) return;
+                clearTimeout(timer);
+                removeWaiter(this.waiters, waiter);
+                resolve(result);
+              } catch (error) {
+                clearTimeout(timer);
+                removeWaiter(this.waiters, waiter);
+                reject(error);
+              }
+            },
+            reject,
+          };
+          const timer = setTimeout(() => {
+            removeWaiter(this.waiters, waiter);
+            const detail = this.bytesSinceDrain
+              ? `; received ${this.bytesSinceDrain} byte(s), but no valid ${label || 'frame'} was found`
+              : '; no serial data was received';
+            reject(new Error(`${label || 'Read'} timed out after ${timeoutMs} ms${detail}`));
+          }, timeoutMs);
+          this.waiters.push(waiter);
+          waiter.check();
+        });
+      }
+
+      waitForAck(timeoutMs = 1000) {
+        return this.waitFor((buffer) => extractAck(buffer), timeoutMs, 'ACK');
+      }
+
+      waitForFrame(timeoutMs = 1500) {
+        return this.waitFor((buffer) => extractFrame(buffer), timeoutMs, 'PN532 response');
+      }
+    }
+
+    function findSequence(buffer, pattern) {
+      outer: for (let i = 0; i <= buffer.length - pattern.length; i += 1) {
+        for (let j = 0; j < pattern.length; j += 1) {
+          if (buffer[i + j] !== pattern[j]) continue outer;
+        }
+        return i;
+      }
+      return -1;
+    }
+
+    function extractAck(buffer) {
+      const index = findSequence(buffer, ACK_FRAME);
+      if (index === -1) {
+        if (buffer.length > 64) buffer.splice(0, buffer.length - 8);
+        return null;
+      }
+      buffer.splice(0, index + ACK_FRAME.length);
+      return ACK_FRAME;
+    }
+
+    function extractFrame(buffer) {
+      while (true) {
+        const start = findSequence(buffer, [0x00, 0x00, 0xff]);
+        if (start === -1) {
+          if (buffer.length > 64) buffer.splice(0, buffer.length - 2);
+          return null;
+        }
+        if (start > 0) buffer.splice(0, start);
+        if (buffer.length < 6) return null;
+
+        const len = buffer[3];
+        const lcs = buffer[4];
+
+        if (len === 0x00 && lcs === 0xff) {
+          if (buffer.length < ACK_FRAME.length) return null;
+          buffer.splice(0, ACK_FRAME.length);
+          continue;
+        }
+
+        if (((len + lcs) & 0xff) !== 0) {
+          buffer.shift();
+          continue;
+        }
+
+        const totalLength = len + 7;
+        if (buffer.length < totalLength) return null;
+
+        const packet = buffer.slice(0, totalLength);
+        const body = packet.slice(5, 5 + len);
+        const dcs = packet[5 + len];
+        const postamble = packet[6 + len];
+        const sum = body.reduce((acc, byte) => (acc + byte) & 0xff, 0);
+
+        buffer.splice(0, totalLength);
+
+        if (((sum + dcs) & 0xff) !== 0) throw new Error(`Invalid PN532 data checksum: ${toHex(packet)}`);
+        if (postamble !== 0x00) throw new Error(`Invalid PN532 postamble: ${toHex(packet)}`);
+        return body;
+      }
+    }
+
+    class PN532 {
+      constructor(serialPort, rxBuffer) {
+        this.port = serialPort;
+        this.rx = rxBuffer;
+        this.writer = null;
+        this.pendingWrite = null;
+      }
+
+      async write(bytes) {
+        if (!this.writer) this.writer = this.port.writable.getWriter();
+        const data = Uint8Array.from(bytes);
+        const writePromise = this.writer.write(data);
+        this.pendingWrite = writePromise;
+        try {
+          await writePromise;
+          log(`TX ${toHex(data)}`, 'muted');
+        } finally {
+          if (this.pendingWrite === writePromise) this.pendingWrite = null;
+        }
+      }
+
+      makeFrame(command, params = []) {
+        const body = [HOST_TO_PN532, command, ...params];
+        const len = body.length & 0xff;
+        const lcs = (0x100 - len) & 0xff;
+        const sum = body.reduce((acc, byte) => (acc + byte) & 0xff, 0);
+        const dcs = (0x100 - sum) & 0xff;
+        return [0x00, 0x00, 0xff, len, lcs, ...body, dcs, 0x00];
+      }
+
+      async command(command, params = [], options = {}) {
+        const timeoutMs = options.timeoutMs || 1500;
+        const frame = this.makeFrame(command, params);
+        const wireBytes = options.wakeup ? [...WAKEUP_PREAMBLE, ...frame] : frame;
+        this.rx.drain();
+        await this.write(wireBytes);
+        await this.rx.waitForAck(options.ackTimeoutMs || 1500);
+        log('RX ACK', 'muted');
+        const body = await this.rx.waitForFrame(timeoutMs);
+        log(`RX ${toHex(body)}`, 'muted');
+
+        if (body[0] !== PN532_TO_HOST) throw new Error(`Unexpected frame direction: ${toHex(body)}`);
+        if (body[1] !== ((command + 1) & 0xff)) throw new Error(`Unexpected response code: ${toHex(body)}`);
+        return body.slice(2);
+      }
+
+      async getFirmwareVersion() {
+        const data = await this.command(COMMANDS.GET_FIRMWARE_VERSION, [], { timeoutMs: 2000, wakeup: true });
+        if (data.length < 4) throw new Error(`Short firmware response: ${toHex(data)}`);
+        return {
+          ic: data[0],
+          version: data[1],
+          revision: data[2],
+          support: data[3],
+        };
+      }
+
+      async initialize() {
+        await this.command(COMMANDS.SAM_CONFIGURATION, [0x01, 0x14, 0x01], { timeoutMs: 2000, wakeup: true });
+        // Limit passive activation retry count so one polling cycle returns quickly when no card is present.
+        await this.command(COMMANDS.RF_CONFIGURATION, [0x05, 0xff, 0x01, 0x01], { timeoutMs: 1600 });
+      }
+
+      async pollIso14443a() {
+        const data = await this.command(COMMANDS.IN_LIST_PASSIVE_TARGET, [0x01, 0x00], { timeoutMs: 1800 });
+        const targetCount = data[0] || 0;
+        if (targetCount < 1) return null;
+
+        // Response format for one ISO14443A target:
+        // NbTg, Tg, SENS_RES(2), SEL_RES, NFCIDLength, NFCID...
+        const uidLength = data[5];
+        if (!uidLength || data.length < 6 + uidLength) throw new Error(`Unexpected card response: ${toHex(data)}`);
+        const uid = data.slice(6, 6 + uidLength);
+        return {
+          targetNumber: data[1],
+          sensRes: data.slice(2, 4),
+          selRes: data[4],
+          uid,
+        };
+      }
+
+      async release() {
+        try { await this.pendingWrite; } catch (_) {}
+        try { this.writer?.releaseLock(); } catch (_) {}
+        this.writer = null;
+      }
+    }
+
+    function setBusy(nextBusy) {
+      isBusy = nextBusy;
+      const connected = Boolean(port);
+      els.connectBtn.disabled = nextBusy || connected || !detectBrowser().hasSerial || !window.isSecureContext;
+      els.disconnectBtn.disabled = nextBusy || !connected;
+      els.firmwareBtn.disabled = nextBusy || !connected;
+      els.initBtn.disabled = nextBusy || !connected;
+      els.startPollBtn.disabled = nextBusy || !connected || polling;
+      els.stopPollBtn.disabled = nextBusy || !polling;
+    }
+
+    async function withBusy(task) {
+      if (isBusy) return;
+      setBusy(true);
+      try {
+        return await task();
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function connectSerial() {
+      try {
+        await withBusy(async () => {
+          if (!('serial' in navigator)) throw new Error('Web Serial API is not available.');
+          const baudRate = Number(els.baudRate.value || 115200);
+          port = await navigator.serial.requestPort();
+          await port.open({ baudRate, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
+          serialBuffer = new SerialBuffer(port);
+          void serialBuffer.start();
+          pn532 = new PN532(port, serialBuffer);
+          const info = port.getInfo();
+          const usbId = info.usbVendorId
+            ? ` (USB VID:PID ${info.usbVendorId.toString(16).padStart(4, '0').toUpperCase()}:${(info.usbProductId || 0).toString(16).padStart(4, '0').toUpperCase()})`
+            : '';
+          setPill(els.serialStatus, `Connected @ ${baudRate}`, 'ok');
+          log(`Serial port connected at ${baudRate}${usbId}.`, 'ok');
+        });
+      } catch (error) {
+        log(`Connect failed: ${error.message}`, 'bad');
+        await disconnectSerial({ logMessage: false });
+      }
+    }
+
+    async function disconnectSerial(options = {}) {
+      if (disconnectPromise) return disconnectPromise;
+      const { deviceLost = false, logMessage = true } = options;
+
+      disconnectPromise = (async () => {
+        stopPolling({ logMessage: false });
+
+        const oldPort = port;
+        const oldPn532 = pn532;
+        const oldSerialBuffer = serialBuffer;
+        port = null;
+        pn532 = null;
+        serialBuffer = null;
+        setBusy(true);
+
+        await oldPn532?.release();
+        await oldSerialBuffer?.stop();
+
+        if (oldPort && !deviceLost && (oldPort.readable || oldPort.writable)) {
+          try {
+            await oldPort.close();
+          } catch (error) {
+            log(`Close warning: ${error.message}`, 'warn');
+          }
+        }
+
+        setPill(els.serialStatus, 'Not connected', 'warn');
+        els.firmwareStatus.textContent = 'Not checked';
+        els.uidStatus.textContent = 'No card detected';
+        if (logMessage) log('Serial port disconnected.', 'warn');
+      })();
+
+      try {
+        await disconnectPromise;
+      } finally {
+        disconnectPromise = null;
+        setBusy(false);
+      }
+    }
+
+    async function getFirmware() {
+      try {
+        await withBusy(async () => {
+          if (!pn532) throw new Error('Serial port is not connected.');
+          const fw = await pn532.getFirmwareVersion();
+          const icName = fw.ic === 0x32 ? 'PN532' : `0x${fw.ic.toString(16).toUpperCase()}`;
+          els.firmwareStatus.textContent = `${icName} v${fw.version}.${fw.revision} support=0x${fw.support.toString(16).padStart(2, '0').toUpperCase()}`;
+          log(`Firmware detected: ${els.firmwareStatus.textContent}`, 'ok');
+        });
+      } catch (error) {
+        log(`Firmware check failed: ${error.message}`, 'bad');
+      }
+    }
+
+    async function initializePn532() {
+      try {
+        await withBusy(async () => {
+          if (!pn532) throw new Error('Serial port is not connected.');
+          await pn532.initialize();
+          log('PN532 initialized: SAMConfiguration OK, passive retry configured.', 'ok');
+        });
+        return true;
+      } catch (error) {
+        log(`Initialize failed: ${error.message}`, 'bad');
+        return false;
+      }
+    }
+
+    async function pollOnce() {
+      if (!polling || isBusy || !pn532) return;
+      setBusy(true);
+      try {
+        const card = await pn532.pollIso14443a();
+        if (!card) {
+          els.uidStatus.textContent = 'No card detected';
+          log('No card detected.', 'muted');
+        } else {
+          const uidText = toHex(card.uid);
+          els.uidStatus.textContent = uidText;
+          log(`Card detected: UID=${uidText}, SENS_RES=${toHex(card.sensRes)}, SEL_RES=${card.selRes.toString(16).padStart(2, '0').toUpperCase()}`, 'ok');
+        }
+      } catch (error) {
+        els.uidStatus.textContent = 'No card detected / timeout';
+        log(`Poll warning: ${error.message}`, 'warn');
+      } finally {
+        setBusy(false);
+        if (polling) {
+          const interval = Math.max(250, Math.min(5000, Number(els.pollInterval.value || 800)));
+          pollTimer = setTimeout(pollOnce, interval);
+        }
+      }
+    }
+
+    async function startPolling() {
+      if (polling) return;
+      polling = true;
+      setPill(els.pollStatus, 'Running', 'ok');
+      setBusy(false);
+      log('Polling started.', 'ok');
+      const initialized = await initializePn532();
+      if (!initialized) {
+        stopPolling();
+        return;
+      }
+      if (polling) void pollOnce();
+    }
+
+    function stopPolling(options = {}) {
+      const { logMessage = true } = options;
+      const wasPolling = polling;
+      polling = false;
+      if (pollTimer) clearTimeout(pollTimer);
+      pollTimer = null;
+      setPill(els.pollStatus, 'Stopped', 'warn');
+      setBusy(false);
+      if (wasPolling && logMessage) log('Polling stopped.', 'warn');
+    }
+
+    els.connectBtn.addEventListener('click', connectSerial);
+    els.disconnectBtn.addEventListener('click', disconnectSerial);
+    els.firmwareBtn.addEventListener('click', getFirmware);
+    els.initBtn.addEventListener('click', initializePn532);
+    els.startPollBtn.addEventListener('click', startPolling);
+    els.stopPollBtn.addEventListener('click', stopPolling);
+    els.clearLogBtn.addEventListener('click', () => { els.log.textContent = ''; });
+
+    if ('serial' in navigator) {
+      navigator.serial.addEventListener('disconnect', (event) => {
+        const disconnectedPort = event.port || (event.target !== navigator.serial ? event.target : null);
+        if (disconnectedPort && port && disconnectedPort !== port) return;
+        log('The serial device was unplugged.', 'bad');
+        void disconnectSerial({ deviceLost: true, logMessage: false });
+      });
+    }
+
+    updateSupportUi();
+    log('Ready. Use desktop Chrome/Edge over HTTPS or localhost.', 'muted');
+  </script>
+</body>
+</html>
